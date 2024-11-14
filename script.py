@@ -9,10 +9,12 @@ from copy import copy
 
 'LEFT_ANKLE', 'LEFT_EAR', 'LEFT_ELBOW', 'LEFT_EYE', 'LEFT_EYE_INNER', 'LEFT_EYE_OUTER', 'LEFT_FOOT_INDEX', 'LEFT_HEEL', 'LEFT_HIP', 'LEFT_INDEX', 'LEFT_KNEE', 'LEFT_PINKY', 'LEFT_SHOULDER', 'LEFT_THUMB', 'LEFT_WRIST', 'MOUTH_LEFT', 'MOUTH_RIGHT', 'NOSE', 'RIGHT_ANKLE', 'RIGHT_EAR', 'RIGHT_ELBOW', 'RIGHT_EYE', 'RIGHT_EYE_INNER', 'RIGHT_EYE_OUTER', 'RIGHT_FOOT_INDEX', 'RIGHT_HEEL', 'RIGHT_HIP', 'RIGHT_INDEX', 'RIGHT_KNEE', 'RIGHT_PINKY', 'RIGHT_SHOULDER', 'RIGHT_THUMB', 'RIGHT_WRIST'
 
+PIXEL_SIZE = 0.07
+
 MIC_DEVICE = "HDA Intel PCH: ALC255 Analog (hw:1,0)"
-MIC_SENSITIVITY = 10
-BASE_MOUTH_LENGTH = 1
-mouth_length_bias = 0
+MIC_SENSITIVITY = 50
+BASE_MOUTH_LENGTH = 1 * PIXEL_SIZE
+mic_volume = 0
 
 def make_color(r, g, b):
     return numpy.array((r, g, b), dtype=numpy.uint8)
@@ -28,7 +30,6 @@ SHOW_AUDIO_DEVICES = False
 OUTPUT_HEIGHT = 256
 OUTPUT_WIDTH = 256
 
-DISPLAY_MODE = "input_to_outpu"
 INPUT_TO_OUTPUT = True
 INPUT_TO_OUTPUT_FLASHING = False
 
@@ -38,10 +39,9 @@ def make_background():
     return numpy.full((OUTPUT_HEIGHT, OUTPUT_WIDTH, 3), numpy.uint8(0))
 
 def process_sound(indata, _frames, _time, _status):
-    global mouth_length_bias
-    volume_norm = numpy.linalg.norm(indata)
-    mouth_length_bias = volume_norm * MIC_SENSITIVITY
-    print(mouth_length_bias)
+    global mic_volume
+    volume_norm = float(numpy.linalg.norm(indata))
+    mic_volume = volume_norm * MIC_SENSITIVITY
 
 def middle(mark1, mark2):
     args = {
@@ -57,14 +57,12 @@ if SHOW_AUDIO_DEVICES:
             print(f"Index: {device['index']}, name: \"{device['name']}\"")
     exit()
 
-PIXEL_SIZE = 0.07
-
 def start():
     video_capture = cv2.VideoCapture(0)
     input_to_output_flash_stage = 0
     input_to_output_flash_shown = True
     with \
-        sounddevice.InputStream(device=MIC_DEVICE, callback=process_sound, latency=0.1), \
+        sounddevice.InputStream(device=MIC_DEVICE, callback=process_sound, latency=1), \
         mediapipe_pose.Pose() as pose_recognizer, \
         Camera(width=OUTPUT_WIDTH, height=OUTPUT_HEIGHT, fps=int(video_capture.get(cv2.CAP_PROP_FPS)), backend=CAMERA_BACKEND) as camera:
         while video_capture.isOpened():
@@ -114,11 +112,18 @@ def start():
                 right_eye_center.y -= PIXEL_SIZE
                 closed_mouth_center = copy(face_center)
                 closed_mouth_center.y += PIXEL_SIZE * 2
+                # Face
                 draw_rectangle(head_center, 5, 7, FACE_COLOR)
+                # Left eye
                 draw_rectangle(left_eye_center, 1, 1, EYE_COLOR)
+                # Right eye
                 draw_rectangle(right_eye_center, 1, 1, EYE_COLOR)
+                mouth_length_bias = (1 if mic_volume > 1 else 0)*PIXEL_SIZE
+                print(mic_volume)
+                # Mouth
+                draw_rectangle_low_level((closed_mouth_center.x - 1.5*PIXEL_SIZE, closed_mouth_center.y - 0.5*PIXEL_SIZE), (closed_mouth_center.x + 1.5*PIXEL_SIZE, closed_mouth_center.y + BASE_MOUTH_LENGTH + mouth_length_bias), MOUTH_COLOR)
+                # Nose
                 draw_rectangle(nose_center, 1, 1, NOSE_COLOR)
-                draw_rectangle_low_level((closed_mouth_center.x - 1.5*PIXEL_SIZE, closed_mouth_center.y - 0.5*PIXEL_SIZE), (closed_mouth_center.x + 1.5*PIXEL_SIZE, closed_mouth_center.y + BASE_MOUTH_LENGTH*PIXEL_SIZE + mouth_length_bias*PIXEL_SIZE), MOUTH_COLOR)
 
             camera.send(output_frame)
 
