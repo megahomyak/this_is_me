@@ -24,6 +24,8 @@ EYE_COLOR = make_color(0, 217, 232)
 OUTPUT_HEIGHT = 256
 OUTPUT_WIDTH = 256
 
+INPUT_TO_OUTPUT = True
+
 CAMERA_BACKEND = "v4l2loopback"
 
 def make_background():
@@ -58,18 +60,20 @@ def start():
             is_success, input_frame = video_capture.read()
             if not is_success:
                 break
-            output_frame = make_background()
+            if INPUT_TO_OUTPUT:
+                output_frame = cv2.resize(input_frame, (OUTPUT_WIDTH, OUTPUT_HEIGHT), interpolation=cv2.INTER_NEAREST)
+            else:
+                output_frame = make_background()
 
             def draw_rectangle(center, absolute_width, absolute_height, color):
-                relative_width = -center.z * absolute_width
-                relative_height = -center.z * absolute_height
-                print(relative_width, relative_height)
+                correct_z = center.z
+                relative_width = correct_z * absolute_width
+                relative_height = correct_z * absolute_height
                 bottom_row = int((center.y + relative_height/2)*OUTPUT_HEIGHT)
                 top_row = int((center.y - relative_height/2)*OUTPUT_HEIGHT)
                 left_column = int((center.x - relative_width/2)*OUTPUT_WIDTH)
                 right_column = int((center.x + relative_width/2)*OUTPUT_WIDTH)
                 output_frame[top_row:bottom_row, left_column:right_column] = color
-                print(numpy.count_nonzero(output_frame))
 
             pose = pose_recognizer.process(input_frame)
 
@@ -79,6 +83,8 @@ def start():
             if pose.pose_landmarks is not None:
                 center_of_head = middle(get_landmark("RIGHT_EAR"), get_landmark("LEFT_EAR"))
                 center_of_face = get_landmark("NOSE")
-                draw_rectangle(center_of_head, 0.3, 0.6, FACE_COLOR)
+                PIXEL_SIZE = 0.1
+                center_of_head.z = abs(get_landmark("RIGHT_EAR").x - get_landmark("LEFT_EAR").x) * 3
+                draw_rectangle(center_of_head, 5*PIXEL_SIZE, 7*PIXEL_SIZE, FACE_COLOR)
 
             camera.send(output_frame)
