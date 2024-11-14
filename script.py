@@ -61,13 +61,13 @@ def start():
             output_frame = make_background()
 
             def draw_rectangle(center, absolute_width, absolute_height, color):
-                relative_width = center.z * absolute_width
-                relative_height = center.z * absolute_height
-                bottom_row = int((center.y - relative_height/2)*OUTPUT_HEIGHT)
-                top_row = int((center.y + relative_height/2)*OUTPUT_HEIGHT)
-                left_column = int((center.x + relative_width/2)*OUTPUT_WIDTH)
-                right_column = int((center.x - relative_width/2)*OUTPUT_WIDTH)
-                print(bottom_row, top_row, left_column, right_column)
+                relative_width = -center.z * absolute_width
+                relative_height = -center.z * absolute_height
+                print(relative_width, relative_height)
+                bottom_row = int((center.y + relative_height/2)*OUTPUT_HEIGHT)
+                top_row = int((center.y - relative_height/2)*OUTPUT_HEIGHT)
+                left_column = int((center.x - relative_width/2)*OUTPUT_WIDTH)
+                right_column = int((center.x + relative_width/2)*OUTPUT_WIDTH)
                 output_frame[top_row:bottom_row, left_column:right_column] = color
                 print(numpy.count_nonzero(output_frame))
 
