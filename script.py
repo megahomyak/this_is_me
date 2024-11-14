@@ -50,8 +50,19 @@ def show_audio_devices():
         if device["max_input_channels"] > 0:
             print(f"Index: {device['index']}, name: \"{device['name']}\"")
 
+class Buffer:
+    def __init__(self):
+        self.contents = []
+    def append(self, item):
+        self.contents.append(item)
+        if len(self.contents) == 5:
+            del self.contents[0]
+    def average(self):
+        return sum(self.contents)/len(self.contents)
+
 def start():
     video_capture = cv2.VideoCapture(0)
+    head_buffer = Buffer()
     with \
         sounddevice.InputStream(device=MIC_DEVICE, callback=process_sound, latency=0.1), \
         mediapipe_pose.Pose() as pose_recognizer, \
@@ -65,14 +76,17 @@ def start():
             else:
                 output_frame = make_background()
 
-            def draw_rectangle(center, absolute_width, absolute_height, color):
-                correct_z = center.z
+            def draw_rectangle(center, absolute_width, absolute_height, color, buffer):
+                correct_z = -center.z
+                buffer.append(correct_z)
+                correct_z = buffer.average()
                 relative_width = correct_z * absolute_width
                 relative_height = correct_z * absolute_height
-                bottom_row = int((center.y + relative_height/2)*OUTPUT_HEIGHT)
-                top_row = int((center.y - relative_height/2)*OUTPUT_HEIGHT)
-                left_column = int((center.x - relative_width/2)*OUTPUT_WIDTH)
-                right_column = int((center.x + relative_width/2)*OUTPUT_WIDTH)
+                bottom_row = min(int((center.y + relative_height/2)*OUTPUT_HEIGHT), OUTPUT_HEIGHT - 1)
+                top_row = max(int((center.y - relative_height/2)*OUTPUT_HEIGHT), 0)
+                left_column = max(int((center.x - relative_width/2)*OUTPUT_WIDTH), 0)
+                right_column = min(int((center.x + relative_width/2)*OUTPUT_WIDTH), OUTPUT_WIDTH - 1)
+                print(bottom_row, top_row, left_column, right_column)
                 output_frame[top_row:bottom_row, left_column:right_column] = color
 
             pose = pose_recognizer.process(input_frame)
@@ -83,8 +97,7 @@ def start():
             if pose.pose_landmarks is not None:
                 center_of_head = middle(get_landmark("RIGHT_EAR"), get_landmark("LEFT_EAR"))
                 center_of_face = get_landmark("NOSE")
-                PIXEL_SIZE = 0.1
-                center_of_head.z = abs(get_landmark("RIGHT_EAR").x - get_landmark("LEFT_EAR").x) * 3
-                draw_rectangle(center_of_head, 5*PIXEL_SIZE, 7*PIXEL_SIZE, FACE_COLOR)
+                PIXEL_SIZE = 0.13
+                draw_rectangle(center_of_head, 5*PIXEL_SIZE, 7*PIXEL_SIZE, FACE_COLOR, head_buffer)
 
             camera.send(output_frame)
