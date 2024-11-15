@@ -89,21 +89,21 @@ def start():
             else:
                 output_frame = make_background()
 
-            def draw_rectangle_low_level(p1, p2, color):
+            def draw_rectangle_low_level(beginning, end, color):
                 if not input_to_output_flash_shown:
                     return
-                bottom_row = clamp(0, int(p2[1]*OUTPUT_HEIGHT), OUTPUT_HEIGHT - 1)
-                top_row = clamp(0, int(p1[1]*OUTPUT_HEIGHT), OUTPUT_HEIGHT - 1)
-                left_column = clamp(0, int(p1[0]*OUTPUT_WIDTH), OUTPUT_WIDTH - 1)
-                right_column = clamp(0, int(p2[0]*OUTPUT_WIDTH), OUTPUT_WIDTH - 1)
+                bottom_row = clamp(0, int(end.y*OUTPUT_HEIGHT), OUTPUT_HEIGHT - 1)
+                top_row = clamp(0, int(beginning.y*OUTPUT_HEIGHT), OUTPUT_HEIGHT - 1)
+                left_column = clamp(0, int(beginning.x*OUTPUT_WIDTH), OUTPUT_WIDTH - 1)
+                right_column = clamp(0, int(end.x*OUTPUT_WIDTH), OUTPUT_WIDTH - 1)
                 output_frame[top_row:bottom_row, left_column:right_column] = color
 
             def draw_rectangle(center, width, height, color):
                 width = width * PIXEL_SIZE
                 height = height * PIXEL_SIZE
-                p1 = (center.x - width/2, center.y - height/2)
-                p2 = (center.x + width/2, center.y + height/2)
-                draw_rectangle_low_level(p1, p2, color)
+                beginning = Point(center.x - width/2, center.y - height/2)
+                end = Point(center.x + width/2, center.y + height/2)
+                draw_rectangle_low_level(beginning, end, color)
 
             def draw_chain(beginning, end, width, height, colors_list):
                 for i in range(len(colors_list)):
@@ -135,6 +135,22 @@ def start():
                 closed_mouth_center.y += PIXEL_SIZE * 1.5
                 # Face
                 draw_rectangle(head_center, 5, 7, FACE_COLOR)
+                # Hair
+                hair_top_left = copy(head_center)
+                hair_top_left.y -= 3.5 * PIXEL_SIZE
+                hair_top_left.x -= 2.5 * PIXEL_SIZE
+                hair_bottom_right = copy(hair_top_left)
+                hair_bottom_right.x += 5 * PIXEL_SIZE
+                hair_bottom_right.y += 2 * PIXEL_SIZE
+                draw_rectangle_low_level(hair_top_left, hair_bottom_right, HAIR_COLOR)
+                # Hair cut
+                hair_cut_top_left = copy(hair_top_left)
+                hair_cut_top_left.x = clamp(hair_top_left.x, face_center.x + 0.5 * PIXEL_SIZE, hair_bottom_right.x)
+                hair_cut_top_left.y += 1 * PIXEL_SIZE
+                hair_cut_bottom_right = copy(hair_cut_top_left)
+                hair_cut_bottom_right.x += 1 * PIXEL_SIZE
+                hair_cut_bottom_right.y += 1 * PIXEL_SIZE
+                draw_rectangle_low_level(hair_cut_top_left, hair_cut_bottom_right, FACE_COLOR)
                 # Left eye
                 draw_rectangle(left_eye_center, 1, 1, EYE_COLOR)
                 # Right eye
@@ -142,7 +158,7 @@ def start():
                 mouth_length_bias = mic_volume*PIXEL_SIZE
                 mouth_length = BASE_MOUTH_LENGTH + mouth_length_bias
                 # Mouth
-                draw_rectangle_low_level((closed_mouth_center.x - 1.5*PIXEL_SIZE, closed_mouth_center.y), (closed_mouth_center.x + 1.5*PIXEL_SIZE, closed_mouth_center.y + mouth_length), MOUTH_COLOR)
+                draw_rectangle_low_level(Point(closed_mouth_center.x - 1.5*PIXEL_SIZE, closed_mouth_center.y), Point(closed_mouth_center.x + 1.5*PIXEL_SIZE, closed_mouth_center.y + mouth_length), MOUTH_COLOR)
                 # Nose
                 draw_rectangle(nose_center, 1, 1, NOSE_COLOR)
                 # Arms
