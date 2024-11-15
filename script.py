@@ -39,6 +39,7 @@ def make_background():
     return numpy.full((OUTPUT_HEIGHT, OUTPUT_WIDTH, 3), numpy.uint8(0))
 
 def process_sound(indata, _frames, _time, _status):
+    breakpoint()
     global mic_volume
     volume_norm = float(numpy.linalg.norm(indata))
     mic_volume = volume_norm * MIC_SENSITIVITY
