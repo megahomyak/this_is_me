@@ -25,6 +25,7 @@ NOSE_COLOR = make_color(198, 158, 104)
 MOUTH_COLOR = make_color(0, 0, 0)
 EYE_COLOR = make_color(0, 217, 232)
 HAIR_COLOR = make_color(109, 71, 0)
+SWEATSHIRT_BASE_COLOR = make_color(0, 170, 0)
 
 SHOW_AUDIO_DEVICES = False
 
@@ -70,7 +71,7 @@ def start():
     with \
         sounddevice.InputStream(device=MIC_DEVICE, callback=process_sound, latency="low"), \
         mediapipe_pose.Pose() as pose_recognizer, \
-        Camera(width=OUTPUT_WIDTH, height=OUTPUT_HEIGHT, fps=int(video_capture.get(cv2.CAP_PROP_FPS)), backend=CAMERA_BACKEND) as camera:
+        Camera(width=OUTPUT_WIDTH, height=OUTPUT_HEIGHT, fps=int(video_capture.get(cv2.CAP_PROP_FPS)) * 2, backend=CAMERA_BACKEND) as camera:
         while video_capture.isOpened():
             is_success, input_frame = video_capture.read()
             if not is_success:
@@ -92,7 +93,6 @@ def start():
                 top_row = clamp(0, int(p1[1]*OUTPUT_HEIGHT), OUTPUT_HEIGHT - 1)
                 left_column = clamp(0, int(p1[0]*OUTPUT_WIDTH), OUTPUT_WIDTH - 1)
                 right_column = clamp(0, int(p2[0]*OUTPUT_WIDTH), OUTPUT_WIDTH - 1)
-                print(p1, p2, color, (left_column, top_row), (right_column, bottom_row))
                 output_frame[top_row:bottom_row, left_column:right_column] = color
 
             def draw_rectangle(center, width, height, color):
@@ -101,6 +101,21 @@ def start():
                 p1 = (center.x - width/2, center.y - height/2)
                 p2 = (center.x + width/2, center.y + height/2)
                 draw_rectangle_low_level(p1, p2, color)
+
+            def draw_chain_middle_link(beginning, end, width, height, base_color, final_color, recursion_level):
+                middle_link = middle(beginning, end)
+                if recursion_level == 0:
+                    base_color = final_color
+                draw_rectangle(middle_link, width, height, base_color)
+                if recursion_level != 0:
+                    recursion_level -= 1
+                    draw_chain_middle_link(beginning, middle, width, height, base_color, final_color, recursion_level)
+                    draw_chain_middle_link(middle, end, width, height, base_color, final_color, recursion_level)
+
+            def draw_chain(beginning, end, width, height, base_color, final_color, recursion_level):
+                draw_rectangle(beginning, width, height, base_color)
+                draw_chain_middle_link(beginning, end, width, height, color, recursion_level)
+                draw_rectangle(end, width, height, base_color)
 
             pose = pose_recognizer.process(input_frame)
 
@@ -127,7 +142,6 @@ def start():
                 draw_rectangle(right_eye_center, 1, 1, EYE_COLOR)
                 mouth_length_bias = mic_volume*PIXEL_SIZE
                 mouth_length = BASE_MOUTH_LENGTH + mouth_length_bias
-                print(mouth_length)
                 # Mouth
                 draw_rectangle_low_level((closed_mouth_center.x - 1.5*PIXEL_SIZE, closed_mouth_center.y), (closed_mouth_center.x + 1.5*PIXEL_SIZE, closed_mouth_center.y + mouth_length), MOUTH_COLOR)
                 # Nose
