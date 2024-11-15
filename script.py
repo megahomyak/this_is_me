@@ -12,7 +12,8 @@ from copy import copy
 PIXEL_SIZE = 0.07
 
 MIC_DEVICE = "HDA Intel PCH: ALC255 Analog (hw:1,0)"
-MIC_SENSITIVITY = 50
+MIC_SENSITIVITY = 500
+AUDIO_THRESHOLD = 0.5
 BASE_MOUTH_LENGTH = 1 * PIXEL_SIZE
 mic_volume = 0
 
@@ -39,10 +40,11 @@ def make_background():
     return numpy.full((OUTPUT_HEIGHT, OUTPUT_WIDTH, 3), numpy.uint8(0))
 
 def process_sound(indata, _frames, _time, _status):
-    breakpoint()
     global mic_volume
-    volume_norm = float(numpy.linalg.norm(indata))
-    mic_volume = volume_norm * MIC_SENSITIVITY
+    average_sound = numpy.mean(indata, axis=1)
+    mic_volume = numpy.sqrt(numpy.mean(average_sound**2)) * MIC_SENSITIVITY
+    if mic_volume < AUDIO_THRESHOLD:
+        mic_volume = 0
 
 def middle(mark1, mark2):
     args = {
@@ -58,12 +60,15 @@ if SHOW_AUDIO_DEVICES:
             print(f"Index: {device['index']}, name: \"{device['name']}\"")
     exit()
 
+def clamp(bound1, value, bound2):
+    return min(max(bound1, value), bound2)
+
 def start():
     video_capture = cv2.VideoCapture(0)
     input_to_output_flash_stage = 0
     input_to_output_flash_shown = True
     with \
-        sounddevice.InputStream(device=MIC_DEVICE, callback=process_sound, latency=1), \
+        sounddevice.InputStream(device=MIC_DEVICE, callback=process_sound, latency="low"), \
         mediapipe_pose.Pose() as pose_recognizer, \
         Camera(width=OUTPUT_WIDTH, height=OUTPUT_HEIGHT, fps=int(video_capture.get(cv2.CAP_PROP_FPS)), backend=CAMERA_BACKEND) as camera:
         while video_capture.isOpened():
@@ -83,10 +88,11 @@ def start():
             def draw_rectangle_low_level(p1, p2, color):
                 if not input_to_output_flash_shown:
                     return
-                bottom_row = min(int(p2[1]*OUTPUT_HEIGHT), OUTPUT_HEIGHT - 1)
-                top_row = max(int(p1[1]*OUTPUT_HEIGHT), 0)
-                left_column = max(int(p1[0]*OUTPUT_WIDTH), 0)
-                right_column = min(int(p2[0]*OUTPUT_WIDTH), OUTPUT_WIDTH - 1)
+                bottom_row = clamp(0, int(p2[1]*OUTPUT_HEIGHT), OUTPUT_HEIGHT - 1)
+                top_row = clamp(0, int(p1[1]*OUTPUT_HEIGHT), OUTPUT_HEIGHT - 1)
+                left_column = clamp(0, int(p1[0]*OUTPUT_WIDTH), OUTPUT_WIDTH - 1)
+                right_column = clamp(0, int(p2[0]*OUTPUT_WIDTH), OUTPUT_WIDTH - 1)
+                print(p1, p2, color, (left_column, top_row), (right_column, bottom_row))
                 output_frame[top_row:bottom_row, left_column:right_column] = color
 
             def draw_rectangle(center, width, height, color):
@@ -112,17 +118,18 @@ def start():
                 right_eye_center.x += PIXEL_SIZE
                 right_eye_center.y -= PIXEL_SIZE
                 closed_mouth_center = copy(face_center)
-                closed_mouth_center.y += PIXEL_SIZE * 2
+                closed_mouth_center.y += PIXEL_SIZE * 1.5
                 # Face
                 draw_rectangle(head_center, 5, 7, FACE_COLOR)
                 # Left eye
                 draw_rectangle(left_eye_center, 1, 1, EYE_COLOR)
                 # Right eye
                 draw_rectangle(right_eye_center, 1, 1, EYE_COLOR)
-                mouth_length_bias = (1 if mic_volume > 1 else 0)*PIXEL_SIZE
-                print(mic_volume)
+                mouth_length_bias = mic_volume*PIXEL_SIZE
+                mouth_length = BASE_MOUTH_LENGTH + mouth_length_bias
+                print(mouth_length)
                 # Mouth
-                draw_rectangle_low_level((closed_mouth_center.x - 1.5*PIXEL_SIZE, closed_mouth_center.y - 0.5*PIXEL_SIZE), (closed_mouth_center.x + 1.5*PIXEL_SIZE, closed_mouth_center.y + BASE_MOUTH_LENGTH + mouth_length_bias), MOUTH_COLOR)
+                draw_rectangle_low_level((closed_mouth_center.x - 1.5*PIXEL_SIZE, closed_mouth_center.y), (closed_mouth_center.x + 1.5*PIXEL_SIZE, closed_mouth_center.y + mouth_length), MOUTH_COLOR)
                 # Nose
                 draw_rectangle(nose_center, 1, 1, NOSE_COLOR)
 
