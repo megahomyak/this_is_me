@@ -41,13 +41,13 @@ SHOW_AUDIO_DEVICES = False
 OUTPUT_HEIGHT = 256
 OUTPUT_WIDTH = 256
 
-INPUT_TO_OUTPUT = True
+INPUT_TO_OUTPUT = False
 INPUT_TO_OUTPUT_FLASHING = False
 
 CAMERA_BACKEND = "v4l2loopback"
 
 def make_background():
-    return numpy.full((OUTPUT_HEIGHT, OUTPUT_WIDTH, 3), numpy.uint8(0))
+    return numpy.full((OUTPUT_HEIGHT, OUTPUT_WIDTH, 3), numpy.uint8(50))
 
 def process_sound(indata, _frames, _time, _status):
     global mic_volume
@@ -82,7 +82,7 @@ def start():
     current_pose = None
     with \
         sounddevice.InputStream(device=MIC_DEVICE, callback=process_sound, latency="low"), \
-        mediapipe_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=0) as pose_recognizer, \
+        mediapipe_pose.Pose(min_detection_confidence=0.9, min_tracking_confidence=0.5, model_complexity=0) as pose_recognizer, \
         Camera(width=OUTPUT_WIDTH, height=OUTPUT_HEIGHT, fps=int(video_capture.get(cv2.CAP_PROP_FPS)) * 2, backend=CAMERA_BACKEND) as camera:
         while video_capture.isOpened():
             is_success, input_frame = video_capture.read()
