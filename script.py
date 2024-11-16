@@ -82,7 +82,7 @@ def start():
     current_pose = None
     with \
         sounddevice.InputStream(device=MIC_DEVICE, callback=process_sound, latency="low"), \
-        mediapipe_pose.Pose(min_detection_confidence=0.9, min_tracking_confidence=0.5, model_complexity=0) as pose_recognizer, \
+        mediapipe_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=0) as pose_recognizer, \
         Camera(width=OUTPUT_WIDTH, height=OUTPUT_HEIGHT, fps=int(video_capture.get(cv2.CAP_PROP_FPS)) * 2, backend=CAMERA_BACKEND) as camera:
         while video_capture.isOpened():
             is_success, input_frame = video_capture.read()
@@ -140,7 +140,7 @@ def start():
                 # Neck
                 midshoulders = average(get_landmark("LEFT_SHOULDER"), get_landmark("RIGHT_SHOULDER"))
                 midmouth = average(get_landmark("MOUTH_RIGHT"), get_landmark("MOUTH_LEFT"))
-                draw_chain(midmouth, midshoulders, 3, 1, [FACE_COLOR]*10)
+                draw_rectangle_low_level(Point(midshoulders.x - 1.5*PIXEL_SIZE, head_center.y + 3.5*PIXEL_SIZE), Point(midshoulders.x + 1.5*PIXEL_SIZE, midshoulders.y), FACE_COLOR)
                 # Body
                 midhips = average(get_landmark("LEFT_HIP"), get_landmark("RIGHT_HIP"))
                 body_width = abs(get_landmark("LEFT_SHOULDER").x - get_landmark("RIGHT_SHOULDER").x)
