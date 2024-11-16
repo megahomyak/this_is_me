@@ -137,8 +137,14 @@ def start():
                 head_center = average(get_landmark("RIGHT_EAR"), get_landmark("LEFT_EAR"))
                 nose_center = get_landmark("NOSE")
                 face_center = average(head_center, nose_center)
-                closed_mouth_center = copy(face_center)
-                closed_mouth_center.y += PIXEL_SIZE * 1.5
+                # Neck
+                midshoulders = average(get_landmark("LEFT_SHOULDER"), get_landmark("RIGHT_SHOULDER"))
+                midmouth = average(get_landmark("MOUTH_RIGHT"), get_landmark("MOUTH_LEFT"))
+                draw_chain(midmouth, midshoulders, 3, 1, [FACE_COLOR]*10)
+                # Body
+                midhips = average(get_landmark("LEFT_HIP"), get_landmark("RIGHT_HIP"))
+                body_width = abs(get_landmark("LEFT_SHOULDER").x - get_landmark("RIGHT_SHOULDER").x)
+                draw_chain(midshoulders, midhips, body_width/PIXEL_SIZE, 2, [*[SWEATSHIRT_BASE_COLOR, SWEATSHIRT_STRIPE_COLOR]*4, SWEATSHIRT_BASE_COLOR])
                 # Face
                 draw_rectangle(head_center, 5, 7, FACE_COLOR)
                 # Hair
@@ -173,16 +179,13 @@ def start():
                 else:
                     blink_stage -= 1
                 # Mouth
+                closed_mouth_center = copy(face_center)
+                closed_mouth_center.y += PIXEL_SIZE * 1.5
                 mouth_length_bias = mic_volume*PIXEL_SIZE
                 mouth_length = BASE_MOUTH_LENGTH + mouth_length_bias
                 draw_rectangle_low_level(Point(closed_mouth_center.x - 1.5*PIXEL_SIZE, closed_mouth_center.y), Point(closed_mouth_center.x + 1.5*PIXEL_SIZE, closed_mouth_center.y + mouth_length), MOUTH_COLOR)
                 # Nose
                 draw_rectangle(nose_center, 1, 1, NOSE_COLOR)
-                # Body
-                midshoulders = average(get_landmark("LEFT_SHOULDER"), get_landmark("RIGHT_SHOULDER"))
-                midhips = average(get_landmark("LEFT_HIP"), get_landmark("RIGHT_HIP"))
-                body_width = abs(get_landmark("LEFT_SHOULDER").x - get_landmark("RIGHT_SHOULDER").x)
-                draw_chain(midshoulders, midhips, body_width/PIXEL_SIZE, 2, [*[SWEATSHIRT_BASE_COLOR, SWEATSHIRT_STRIPE_COLOR]*4, SWEATSHIRT_BASE_COLOR])
                 # Arms
                 for beginning, end in (("LEFT_SHOULDER", "LEFT_ELBOW"), ("LEFT_ELBOW", "LEFT_WRIST"), ("RIGHT_SHOULDER", "RIGHT_ELBOW"), ("RIGHT_ELBOW", "RIGHT_WRIST")):
                     beginning = get_landmark(beginning)
