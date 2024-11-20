@@ -44,6 +44,8 @@ OUTPUT_HEIGHT = 256
 OUTPUT_WIDTH = 256
 
 FACE_DRIFT_SCALE = 1
+DO_X_FACE_DRIFT = True
+DO_Y_FACE_DRIFT = True
 
 INPUT_TO_OUTPUT = False
 INPUT_TO_OUTPUT_FLASHING = False
@@ -146,8 +148,12 @@ def start():
             if current_pose is not None:
                 head_center = average(get_landmark("RIGHT_EAR"), get_landmark("LEFT_EAR"))
                 nose_center = get_landmark("NOSE")
-                nose_center.x -= (1 - (1/FACE_DRIFT_SCALE))/2
-                nose_center.x *= FACE_DRIFT_SCALE
+                if DO_X_FACE_DRIFT:
+                    nose_center.x -= (1 - (1/FACE_DRIFT_SCALE))/2
+                    nose_center.x *= FACE_DRIFT_SCALE
+                if DO_Y_FACE_DRIFT:
+                    nose_center.y -= (1 - (1/FACE_DRIFT_SCALE))/2
+                    nose_center.y *= FACE_DRIFT_SCALE
                 face_center = average(head_center, nose_center)
                 # Neck
                 midshoulders = average(get_landmark("LEFT_SHOULDER"), get_landmark("RIGHT_SHOULDER"))
