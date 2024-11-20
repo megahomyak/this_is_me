@@ -11,7 +11,7 @@ import random
 
 'LEFT_ANKLE', 'LEFT_EAR', 'LEFT_ELBOW', 'LEFT_EYE', 'LEFT_EYE_INNER', 'LEFT_EYE_OUTER', 'LEFT_FOOT_INDEX', 'LEFT_HEEL', 'LEFT_HIP', 'LEFT_INDEX', 'LEFT_KNEE', 'LEFT_PINKY', 'LEFT_SHOULDER', 'LEFT_THUMB', 'LEFT_WRIST', 'MOUTH_LEFT', 'MOUTH_RIGHT', 'NOSE', 'RIGHT_ANKLE', 'RIGHT_EAR', 'RIGHT_ELBOW', 'RIGHT_EYE', 'RIGHT_EYE_INNER', 'RIGHT_EYE_OUTER', 'RIGHT_FOOT_INDEX', 'RIGHT_HEEL', 'RIGHT_HIP', 'RIGHT_INDEX', 'RIGHT_KNEE', 'RIGHT_PINKY', 'RIGHT_SHOULDER', 'RIGHT_THUMB', 'RIGHT_WRIST'
 
-PIXEL_SIZE = 0.02
+PIXEL_SIZE = 0.05
 
 MIC_DEVICE = ""
 MIC_SENSITIVITY = 500
@@ -25,7 +25,7 @@ def make_color(r, g, b):
 FACE_COLOR = make_color(245, 196, 129)
 NOSE_COLOR = make_color(198, 158, 104)
 MOUTH_COLOR = make_color(0, 0, 0)
-EYE_COLOR = make_color(0, 217, 232)
+EYE_COLOR = make_color(255, 255, 255)
 CLOSED_EYE_COLOR = make_color(0, 0, 0)
 HAIR_COLOR = make_color(109, 71, 0)
 SWEATSHIRT_BASE_COLOR = make_color(0, 170, 0)
@@ -43,13 +43,15 @@ SHOW_AUDIO_DEVICES = False
 OUTPUT_HEIGHT = 256
 OUTPUT_WIDTH = 256
 
+FACE_DRIFT_SCALE = 1
+
 INPUT_TO_OUTPUT = False
 INPUT_TO_OUTPUT_FLASHING = False
 
 CAMERA_BACKEND = "v4l2loopback"
 
 def make_background():
-    return numpy.full((OUTPUT_HEIGHT, OUTPUT_WIDTH, 3), numpy.uint8(50))
+    return numpy.full((OUTPUT_HEIGHT, OUTPUT_WIDTH, 3), [0x32, 0x32, 0x32], dtype=numpy.uint8)
 
 def process_sound(indata, _frames, _time, _status):
     global mic_volume
@@ -144,6 +146,8 @@ def start():
             if current_pose is not None:
                 head_center = average(get_landmark("RIGHT_EAR"), get_landmark("LEFT_EAR"))
                 nose_center = get_landmark("NOSE")
+                nose_center.x -= (1 - (1/FACE_DRIFT_SCALE))/2
+                nose_center.x *= FACE_DRIFT_SCALE
                 face_center = average(head_center, nose_center)
                 # Neck
                 midshoulders = average(get_landmark("LEFT_SHOULDER"), get_landmark("RIGHT_SHOULDER"))
@@ -182,6 +186,7 @@ def start():
                 hair_cut_top_left.y = hair_bottom_right.y - 1*PIXEL_SIZE
                 hair_cut_bottom_right = copy(hair_cut_top_left)
                 hair_cut_bottom_right.x += 1 * PIXEL_SIZE
+                hair_cut_bottom_right.x = clamp(hair_top_left.x, hair_cut_bottom_right.x, hair_bottom_right.x)
                 hair_cut_bottom_right.y = hair_bottom_right.y
                 draw_rectangle_low_level(hair_cut_top_left, hair_cut_bottom_right, FACE_COLOR)
                 # Eyes
