@@ -13,8 +13,8 @@ import random
 
 PIXEL_SIZE = 0.05
 
-MIC_DEVICE = ""
-MIC_SENSITIVITY = 500
+MIC_DEVICE = "pulse"
+MIC_SENSITIVITY = 7500
 AUDIO_THRESHOLD = 0.5
 BASE_MOUTH_LENGTH = 1 * PIXEL_SIZE
 mic_volume = 0
@@ -25,7 +25,7 @@ def make_color(r, g, b):
 FACE_COLOR = make_color(245, 196, 129)
 NOSE_COLOR = make_color(198, 158, 104)
 MOUTH_COLOR = make_color(0, 0, 0)
-EYE_COLOR = make_color(255, 255, 255)
+EYE_COLOR = make_color(0x90, 0xd5, 0xff)
 CLOSED_EYE_COLOR = make_color(0, 0, 0)
 HAIR_COLOR = make_color(109, 71, 0)
 SWEATSHIRT_BASE_COLOR = make_color(0, 170, 0)
@@ -59,6 +59,7 @@ def process_sound(indata, _frames, _time, _status):
     global mic_volume
     average_sound = numpy.mean(indata, axis=1)
     mic_volume = numpy.sqrt(numpy.mean(average_sound**2)) * MIC_SENSITIVITY
+    print(mic_volume)
     if mic_volume < AUDIO_THRESHOLD:
         mic_volume = 0
 
@@ -76,7 +77,7 @@ if SHOW_AUDIO_DEVICES:
     for device in devices:
         marker = " "
         if device["max_input_channels"] > 0:
-            marker = "X"
+            marker = "V"
         print(f"[{marker}] Index: {device['index']}, name: \"{device['name']}\"")
     exit()
 
@@ -89,6 +90,8 @@ def start():
     input_to_output_flash_shown = True
     current_pose = None
     with \
+        sounddevice.InputStream(device=MIC_DEVICE, callback=process_sound, latency
+="low"), \
         mediapipe_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5, model_complexity=0) as pose_recognizer, \
         Camera(width=OUTPUT_WIDTH, height=OUTPUT_HEIGHT, fps=int(video_capture.get(cv2.CAP_PROP_FPS)) * 2, backend=CAMERA_BACKEND) as camera:
         while video_capture.isOpened():
