@@ -11,7 +11,7 @@ import random
 
 'LEFT_ANKLE', 'LEFT_EAR', 'LEFT_ELBOW', 'LEFT_EYE', 'LEFT_EYE_INNER', 'LEFT_EYE_OUTER', 'LEFT_FOOT_INDEX', 'LEFT_HEEL', 'LEFT_HIP', 'LEFT_INDEX', 'LEFT_KNEE', 'LEFT_PINKY', 'LEFT_SHOULDER', 'LEFT_THUMB', 'LEFT_WRIST', 'MOUTH_LEFT', 'MOUTH_RIGHT', 'NOSE', 'RIGHT_ANKLE', 'RIGHT_EAR', 'RIGHT_ELBOW', 'RIGHT_EYE', 'RIGHT_EYE_INNER', 'RIGHT_EYE_OUTER', 'RIGHT_FOOT_INDEX', 'RIGHT_HEEL', 'RIGHT_HIP', 'RIGHT_INDEX', 'RIGHT_KNEE', 'RIGHT_PINKY', 'RIGHT_SHOULDER', 'RIGHT_THUMB', 'RIGHT_WRIST'
 
-PIXEL_SIZE = 0.05
+PIXEL_SIZE = 0.06
 
 MIC_DEVICE = "pulse"
 MIC_SENSITIVITY = 7500
@@ -25,7 +25,7 @@ def make_color(r, g, b):
 FACE_COLOR = make_color(245, 196, 129)
 NOSE_COLOR = make_color(198, 158, 104)
 MOUTH_COLOR = make_color(0, 0, 0)
-EYE_COLOR = make_color(0x90, 0xd5, 0xff)
+EYE_COLOR = make_color(0x44, 0x44, 0xff)
 CLOSED_EYE_COLOR = make_color(0, 0, 0)
 HAIR_COLOR = make_color(109, 71, 0)
 SWEATSHIRT_BASE_COLOR = make_color(0, 170, 0)
@@ -59,7 +59,6 @@ def process_sound(indata, _frames, _time, _status):
     global mic_volume
     average_sound = numpy.mean(indata, axis=1)
     mic_volume = numpy.sqrt(numpy.mean(average_sound**2)) * MIC_SENSITIVITY
-    print(mic_volume)
     if mic_volume < AUDIO_THRESHOLD:
         mic_volume = 0
 
